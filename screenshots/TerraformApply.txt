@@ -1,0 +1,59 @@
+root@LAPTOP-2A2LJN6M:/usr/TravelMemory-Deployment/terraform# terraform apply tfplan
+aws_eip.nat: Creating...
+aws_vpc.main: Creating...
+aws_eip.nat: Creation complete after 1s [id=eipalloc-01b45a489dae0de9c]
+aws_vpc.main: Still creating... [00m10s elapsed]
+aws_vpc.main: Creation complete after 12s [id=vpc-0db365a67d85d6d83]
+aws_internet_gateway.main: Creating...
+aws_route_table.public: Creating...
+aws_subnet.private: Creating...
+aws_subnet.public: Creating...
+aws_route_table.private: Creating...
+aws_security_group.web: Creating...
+aws_internet_gateway.main: Creation complete after 1s [id=igw-06e51efbe1f9b5deb]
+aws_route_table.public: Creation complete after 1s [id=rtb-098faf53667429e0f]
+aws_route.public_internet: Creating...
+aws_subnet.private: Creation complete after 1s [id=subnet-0a1f56358416f7e49]
+aws_route_table.private: Creation complete after 1s [id=rtb-0761d8fa283b026c0]
+aws_route_table_association.private: Creating...
+aws_route_table_association.private: Creation complete after 0s [id=rtbassoc-082ea22981abad635]
+aws_route.public_internet: Creation complete after 1s [id=r-rtb-098faf53667429e0f1080289494]
+aws_security_group.web: Creation complete after 2s [id=sg-07fd03f691871a632]
+aws_security_group.database: Creating...
+aws_security_group.database: Creation complete after 2s [id=sg-0e4efadad9658c596]
+aws_instance.database: Creating...
+aws_subnet.public: Still creating... [00m10s elapsed]
+aws_subnet.public: Creation complete after 14s [id=subnet-0e4b7814342b4c18d]
+aws_route_table_association.public: Creating...
+aws_nat_gateway.main: Creating...
+aws_instance.web: Creating...
+aws_route_table_association.public: Creation complete after 0s [id=rtbassoc-05294ae6871cb1c78]
+aws_instance.database: Still creating... [00m10s elapsed]
+aws_instance.database: Creation complete after 14s [id=i-05871467ef8265c5f]
+aws_nat_gateway.main: Still creating... [00m10s elapsed]
+aws_instance.web: Still creating... [00m10s elapsed]
+aws_instance.web: Creation complete after 13s [id=i-01d07d86af2d9621c]
+aws_nat_gateway.main: Still creating... [00m20s elapsed]
+aws_nat_gateway.main: Still creating... [00m30s elapsed]
+aws_nat_gateway.main: Still creating... [00m40s elapsed]
+aws_nat_gateway.main: Still creating... [00m50s elapsed]
+aws_nat_gateway.main: Still creating... [01m00s elapsed]
+aws_nat_gateway.main: Still creating... [01m10s elapsed]
+aws_nat_gateway.main: Still creating... [01m20s elapsed]
+aws_nat_gateway.main: Still creating... [01m30s elapsed]
+aws_nat_gateway.main: Still creating... [01m40s elapsed]
+aws_nat_gateway.main: Still creating... [01m50s elapsed]
+aws_nat_gateway.main: Creation complete after 1m55s [id=nat-0d83f7b0564cd677b]
+aws_route.private_nat: Creating...
+aws_route.private_nat: Creation complete after 1s [id=r-rtb-0761d8fa283b026c01080289494]
+
+Apply complete! Resources: 16 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+database_private_ip = "10.0.2.100"
+private_subnet_id = "subnet-0a1f56358416f7e49"
+public_subnet_id = "subnet-0e4b7814342b4c18d"
+vpc_id = "vpc-0db365a67d85d6d83"
+web_public_ip = "43.205.140.71"
+web_url = "http://43.205.140.71"
