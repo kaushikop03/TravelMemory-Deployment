@@ -1,0 +1,190 @@
+---
+- name: Configure TravelMemory web server
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Update Amazon Linux package cache
+      ansible.builtin.dnf:
+        update_cache: true
+
+    - name: Install required packages
+      ansible.builtin.dnf:
+        name:
+          - git
+          - nginx
+          - nodejs
+          - npm
+        state: present
+
+    - name: Clone TravelMemory repository
+      ansible.builtin.git:
+        repo: https://github.com/UnpredictablePrashant/TravelMemory.git
+        dest: /opt/TravelMemory
+        version: main
+        update: true
+
+    - name: Install backend dependencies
+      ansible.builtin.command:
+        cmd: npm install
+        chdir: /opt/TravelMemory/backend
+        creates: /opt/TravelMemory/backend/node_modules
+
+    - name: Install frontend dependencies
+      ansible.builtin.command:
+        cmd: npm install
+        chdir: /opt/TravelMemory/frontend
+        creates: /opt/TravelMemory/frontend/node_modules
+
+    - name: Build React frontend
+      ansible.builtin.command:
+        cmd: npm run build
+        chdir: /opt/TravelMemory/frontend
+      environment:
+        REACT_APP_BACKEND_URL: "/trip"
+
+    - name: Create React application directory
+      ansible.builtin.file:
+        path: /var/www/travelmemory
+        state: directory
+        owner: nginx
+        group: nginx
+        mode: '0755'
+
+    - name: Copy React build files to Nginx web root
+      ansible.builtin.copy:
+        src: /opt/TravelMemory/frontend/build/
+        dest: /var/www/travelmemory/
+        remote_src: true
+        owner: nginx
+        group: nginx
+        mode: preserve
+
+    - name: Remove default Nginx configuration if present
+      ansible.builtin.file:
+        path: /etc/nginx/conf.d/default.conf
+        state: absent
+      notify: Reload Nginx
+
+    - name: Configure Nginx
+      ansible.builtin.template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/conf.d/travelmemory.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload Nginx
+
+    - name: Validate Nginx configuration
+      ansible.builtin.command:
+        cmd: nginx -t
+      changed_when: false
+
+    - name: Ensure Nginx is enabled and running
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Create backend environment file
+      ansible.builtin.template:
+        src: templates/backend.env.j2
+        dest: /opt/TravelMemory/backend/.env
+        owner: ec2-user
+        group: ec2-user
+        mode: '0600'
+      no_log: true
+
+    - name: Check whether the old backend service exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/travelmemory-backend.service
+      register: old_backend_service
+
+    - name: Stop and disable old backend service
+      ansible.builtin.systemd:
+        name: travelmemory-backend
+        state: stopped
+        enabled: false
+      when: old_backend_service.stat.exists
+
+    - name: Remove old backend service file
+      ansible.builtin.file:
+        path: /etc/systemd/system/travelmemory-backend.service
+        state: absent
+      when: old_backend_service.stat.exists
+
+    - name: Configure TravelMemory systemd service
+      ansible.builtin.template:
+        src: templates/travelmemory.service.j2
+        dest: /etc/systemd/system/travelmemory.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart TravelMemory service
+
+    - name: Enable and start TravelMemory service
+      ansible.builtin.systemd:
+        name: travelmemory
+        daemon_reload: true
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+
+    - name: Restart TravelMemory service
+      ansible.builtin.systemd:
+        name: travelmemory
+        daemon_reload: true
+        state: restarted
+
+#prepare of db server 
+
+- name: Prepare MongoDB database server
+  hosts: database
+  become: true
+
+  tasks:
+    - name: Update Amazon Linux package cache
+      ansible.builtin.dnf:
+        update_cache: true
+
+    - name: Verify curl and gpg are present
+      ansible.builtin.command: "{{ item }} --version"
+      loop:
+        - curl
+        - gpg
+      changed_when: false
+
+    - name: Add MongoDB 8.0 repository
+      ansible.builtin.yum_repository:
+        name: mongodb-org-8.0
+        description: MongoDB Repository
+        baseurl: https://repo.mongodb.org/yum/amazon/2023/mongodb-org/8.0/x86_64/
+        gpgcheck: true
+        enabled: true
+        gpgkey: https://pgp.mongodb.com/server-8.0.asc
+
+    - name: Install MongoDB
+      ansible.builtin.dnf:
+        name: mongodb-org
+        state: present
+        update_cache: true
+
+    - name: Enable and start MongoDB
+      ansible.builtin.systemd:
+        name: mongod
+        enabled: true
+        state: started
+
+    - name: Check MongoDB service
+      ansible.builtin.command: systemctl is-active mongod
+      register: mongodb_status
+      changed_when: false
+
+    - name: Display MongoDB status
+      ansible.builtin.debug:
+        msg: "MongoDB service status: {{ mongodb_status.stdout }}"
